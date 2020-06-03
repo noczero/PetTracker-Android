@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Pet Tracker</string>
+    <string name="title_indoor">Indoor</string>
+    <string name="title_outdoor">Outdoor</string>
+
+    <string name="instruction">1. Open Wifi Setting \n2. Connect to SSID PetTracker\n  </string>
+</resources>
