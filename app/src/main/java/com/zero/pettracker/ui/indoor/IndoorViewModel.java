@@ -14,7 +14,7 @@ public class IndoorViewModel extends ViewModel {
         mText.setValue("This is indoor fragment");
 
         statusNetwork = new MutableLiveData<>();
-        statusNetwork.setValue("Connected...");
+        statusNetwork.setValue("Waiting for connection...");
     }
 
     public LiveData<String> getText() {

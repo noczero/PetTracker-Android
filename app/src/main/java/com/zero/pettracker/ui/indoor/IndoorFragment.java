@@ -9,13 +9,14 @@ import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -23,7 +24,22 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkError;
+import com.android.volley.NetworkResponse;
+import com.android.volley.NoConnectionError;
+import com.android.volley.ParseError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.ServerError;
+import com.android.volley.TimeoutError;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.zero.pettracker.R;
+
+import java.util.Locale;
 
 import static android.content.Context.CONNECTIVITY_SERVICE;
 
@@ -34,15 +50,18 @@ public class IndoorFragment extends Fragment {
     private TextView statusNetwork;
     private TextView rssiNetwork;
     private TextView ssidNetwork;
-    private Button findMyPetBtn;
-    private WifiReceiver wifiReceiver;
-    private BroadcastReceiver broadcastReceiver;
+    private Button connectToWiFi;
+    private Button btnFindMyPet;
+    private Button btnTurnOffAlarm;
+    private LinearLayout distanceInformationLayout;
+    private TextView distance;
+    private int rssi = -100;
+    private double current_distance = 100;
 
     // onCreateView
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-
 
         indoorViewModel = ViewModelProviders.of(this).get(IndoorViewModel.class);
 
@@ -51,7 +70,8 @@ public class IndoorFragment extends Fragment {
         statusNetwork = root.findViewById(R.id.status_network);
         rssiNetwork = root.findViewById(R.id.rssi_wifi);
         ssidNetwork = root.findViewById(R.id.ssid);
-
+        distanceInformationLayout = root.findViewById(R.id.distance_information);
+        distance = root.findViewById(R.id.total_distance);
 
         indoorViewModel.getStatusNetwork().observe(getViewLifecycleOwner(), new Observer<String>() {
             @Override
@@ -60,15 +80,29 @@ public class IndoorFragment extends Fragment {
             }
         });
 
-        findMyPetBtn = root.findViewById(R.id.btn_find);
-        findMyPetBtn.setOnClickListener(new View.OnClickListener() {
+        connectToWiFi = root.findViewById(R.id.btn_connect_wifi);
+        connectToWiFi.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 // start instruction
                 PopUpInstruction popUpInstruction = new PopUpInstruction(getContext());
                 popUpInstruction.showPopupWindow(v);
+            }
+        });
 
+        btnFindMyPet = root.findViewById(R.id.btn_find_pet);
+        btnFindMyPet.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sendRSSItoDevice(); // send rssi to device
+            }
+        });
+
+        btnFindMyPet = root.findViewById(R.id.btn_turn_off_alarm);
+        btnFindMyPet.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                turnOffAlarm();
             }
         });
 
@@ -77,52 +111,157 @@ public class IndoorFragment extends Fragment {
         getActivity().registerReceiver(this.myWifiReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         getActivity().registerReceiver(this.myRssiChangeReceiver, new IntentFilter(WifiManager.RSSI_CHANGED_ACTION));
 
+
         return root;
     }
 
-        private BroadcastReceiver myRssiChangeReceiver = new BroadcastReceiver(){
-            @Override
-            public void onReceive(Context arg0, Intent arg1) {
-                WifiManager wifiMan=(WifiManager)getActivity().getSystemService(Context.WIFI_SERVICE);
-                wifiMan.startScan();
-                int newRssi = wifiMan.getConnectionInfo().getRssi();
-                rssiNetwork.setText("RSSI Level : "+ newRssi);
-            }};
-
-        private BroadcastReceiver myWifiReceiver
-                = new BroadcastReceiver(){
-
-            @Override
-            public void onReceive(Context arg0, Intent arg1) {
-                // TODO Auto-generated method stub
-                NetworkInfo networkInfo = arg1.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
-                if(networkInfo.getType() == ConnectivityManager.TYPE_WIFI){
-                    DisplayWifiState();
-                }
-            }};
-
     private void DisplayWifiState(){
-
         ConnectivityManager myConnManager = (ConnectivityManager) getActivity().getSystemService(CONNECTIVITY_SERVICE);
         NetworkInfo myNetworkInfo = myConnManager.getActiveNetworkInfo();
-        WifiManager myWifiManager = (WifiManager) getActivity().getSystemService(Context.WIFI_SERVICE);
-        myWifiManager.startScan();
-        WifiInfo myWifiInfo = myWifiManager.getConnectionInfo();
+        if (myNetworkInfo != null ){
+            WifiManager myWifiManager = (WifiManager) getActivity().getSystemService(Context.WIFI_SERVICE);
+            myWifiManager.startScan();
+            WifiInfo myWifiInfo = myWifiManager.getConnectionInfo();
+            Log.d("myWifiInfo", "Frequency : " + myWifiInfo.getFrequency());
+            if (myNetworkInfo.isConnected()) {
+                int frequency = myWifiInfo.getFrequency();
+                rssi = myWifiInfo.getRssi();
+                String ssid = WiFiUtils.convertSSID(myWifiInfo.getSSID());
+                current_distance = WiFiUtils.calculateDistance(frequency,rssi);
 
-        Log.d("myWifiInfo", "Frequency : " + myWifiInfo.getFrequency());
+                statusNetwork.setText("Connecton status : Connected");
+                rssiNetwork.setText("RSSI Level : "+ rssi);
+                ssidNetwork.setText("SSID : "+ ssid);
+                distance.setText(String.format(Locale.ENGLISH, "~%.1fm", current_distance)); // set distance
 
-        if (myNetworkInfo.isConnected()){
-            int myIp = myWifiInfo.getIpAddress();
+                // Toast.makeText(getContext(), "Connected...", Toast.LENGTH_SHORT).show();
+                connectToWiFi.setVisibility(View.GONE); // remove button
+                distanceInformationLayout.setVisibility(View.VISIBLE); // show distance
 
-            statusNetwork.setText("Connecton status : Connected");
-            rssiNetwork.setText("RSSI Level : "+ myWifiInfo.getRssi());
-            ssidNetwork.setText("SSID : "+ myWifiInfo.getSSID());
+            }
         }
         else{
             statusNetwork.setText("Connecton status : Disconnected");
             rssiNetwork.setText(""); // empty
             ssidNetwork.setText("");
+
+            Toast.makeText(getContext(), "Disconnected...", Toast.LENGTH_SHORT).show();
+            connectToWiFi.setVisibility(View.VISIBLE); // show button
+            distanceInformationLayout.setVisibility(View.GONE); // show distance
+
         }
+    }
+
+    private double prev_distance = 100;
+    private void sendRSSItoDevice(){
+        RequestQueue queue = Volley.newRequestQueue(getContext());
+        String api_url = "http://192.168.4.1/set_rssi?rssi=" + rssi;
+
+        // Request a string response from the provided URL.
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, api_url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // Display the first 500 characters of the response string.
+                        // textView.setText("Response is: "+ response.substring(0,500));
+
+                        if (current_distance < prev_distance){
+                            Toast.makeText(getContext(), "My pet is getting closer!", Toast.LENGTH_SHORT).show();
+                            prev_distance = current_distance;
+                        } else {
+                            Toast.makeText(getContext(), "My pet is getting further away!", Toast.LENGTH_SHORT).show();
+                            prev_distance = current_distance;
+                        }
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                // textView.setText("That didn't work!");
+
+                Log.e("Volly Error", error.toString());
+
+                NetworkResponse networkResponse = error.networkResponse;
+                if (networkResponse != null) {
+                    Log.e("Status code", String.valueOf(networkResponse.statusCode));
+                }
+
+                if( error instanceof NetworkError) {
+                    //handle your network error here.
+                    Toast.makeText(getContext(), "Can't established connection to device", Toast.LENGTH_SHORT).show();
+                } else if( error instanceof ServerError) {
+                    //handle if server error occurs with 5** status code
+                    Toast.makeText(getContext(), "Server Error...", Toast.LENGTH_SHORT).show();
+                } else if( error instanceof AuthFailureError) {
+                    //handle if authFailure occurs.This is generally because of invalid credentials
+                    Toast.makeText(getContext(), "Invalid Credentials", Toast.LENGTH_SHORT).show();
+                } else if( error instanceof ParseError) {
+                    //handle if the volley is unable to parse the response data.
+                    Toast.makeText(getContext(), "Parse error...", Toast.LENGTH_SHORT).show();
+                } else if( error instanceof NoConnectionError) {
+                    //handle if no connection is occurred
+                    Toast.makeText(getContext(), "Can't established connection to device", Toast.LENGTH_SHORT).show();
+                } else if( error instanceof TimeoutError) {
+                    //handle if socket time out is occurred.
+                    Toast.makeText(getContext(), "Request timed out..", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        // Add the request to the RequestQueue.
+        queue.add(stringRequest);
+    }
+
+    private void turnOffAlarm(){
+        RequestQueue queue = Volley.newRequestQueue(getContext());
+        String api_url = "http://192.168.4.1/set_rssi?rssi=-100";
+
+        // Request a string response from the provided URL.
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, api_url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // Display the first 500 characters of the response string.
+                        // textView.setText("Response is: "+ response.substring(0,500));
+
+                        Toast.makeText(getContext(), "The alarm has been turned off", Toast.LENGTH_SHORT).show();
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                // textView.setText("That didn't work!");
+
+                Log.e("Volly Error", error.toString());
+
+                NetworkResponse networkResponse = error.networkResponse;
+                if (networkResponse != null) {
+                    Log.e("Status code", String.valueOf(networkResponse.statusCode));
+                }
+
+                if( error instanceof NetworkError) {
+                    //handle your network error here.
+                    Toast.makeText(getContext(), "Can't established connection to device", Toast.LENGTH_SHORT).show();
+                } else if( error instanceof ServerError) {
+                    //handle if server error occurs with 5** status code
+                    Toast.makeText(getContext(), "Server Error...", Toast.LENGTH_SHORT).show();
+                } else if( error instanceof AuthFailureError) {
+                    //handle if authFailure occurs.This is generally because of invalid credentials
+                    Toast.makeText(getContext(), "Invalid Credentials", Toast.LENGTH_SHORT).show();
+                } else if( error instanceof ParseError) {
+                    //handle if the volley is unable to parse the response data.
+                    Toast.makeText(getContext(), "Parse error...", Toast.LENGTH_SHORT).show();
+                } else if( error instanceof NoConnectionError) {
+                    //handle if no connection is occurred
+                    Toast.makeText(getContext(), "Can't established connection to device", Toast.LENGTH_SHORT).show();
+                } else if( error instanceof TimeoutError) {
+                    //handle if socket time out is occurred.
+                    Toast.makeText(getContext(), "Request timed out..", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        // Add the request to the RequestQueue.
+        queue.add(stringRequest);
     }
 
     @Override
@@ -132,19 +271,60 @@ public class IndoorFragment extends Fragment {
         IntentFilter rssiFilter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
         getActivity().registerReceiver(myRssiChangeReceiver, rssiFilter);
 
+        getActivity().registerReceiver(this.myWifiReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+
         WifiManager wifiMan=(WifiManager)getActivity().getSystemService(Context.WIFI_SERVICE);
         wifiMan.startScan();
     }
+
     @Override
     public void onPause() {
         super.onPause();
         getActivity().unregisterReceiver(myRssiChangeReceiver);
+        getActivity().unregisterReceiver(myWifiReceiver);
     }
 
+    @Override
+    public void onDestroy() {
+        try{
+            getActivity().unregisterReceiver(myRssiChangeReceiver);
+            getActivity().unregisterReceiver(myWifiReceiver);
+        }catch(Exception e){}
 
+        super.onDestroy();
+    }
 
+    private BroadcastReceiver myRssiChangeReceiver = new BroadcastReceiver(){
+        @Override
+        public void onReceive(Context arg0, Intent arg1) {
+            WifiManager wifiMan = (WifiManager)getActivity().getSystemService(Context.WIFI_SERVICE);
+            wifiMan.startScan();
+            rssi = wifiMan.getConnectionInfo().getRssi();
 
+            // check if rssi -127, means it not connected
+            if (rssi >= -100){
+                int frequency =  wifiMan.getConnectionInfo().getFrequency();
+                current_distance = WiFiUtils.calculateDistance(frequency,rssi);
 
+                rssiNetwork.setText("RSSI Level : "+ rssi);
+                distance.setText(String.format(Locale.ENGLISH, "~%.1fm", current_distance));
 
+                //sendRSSItoDevice(); // send rssi to device
+            } else {
+                rssiNetwork.setText("");
+            }
+        }
+    };
+
+    private BroadcastReceiver myWifiReceiver = new BroadcastReceiver(){
+        @Override
+        public void onReceive(Context arg0, Intent arg1) {
+            // TODO Auto-generated method stub
+            NetworkInfo networkInfo = arg1.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+            if(networkInfo.getType() == ConnectivityManager.TYPE_WIFI){
+                DisplayWifiState();
+            }
+        }
+    };
 
 }

@@ -62,7 +62,7 @@ public class PopUpInstruction  {
                 //Toast.makeText(view.getContext(), "Connected...", Toast.LENGTH_SHORT).show();
 
                 context.startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-
+                popupWindow.dismiss();
             }
         });
 
