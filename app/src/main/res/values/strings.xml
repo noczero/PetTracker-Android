@@ -4,4 +4,5 @@
     <string name="title_outdoor">Outdoor</string>
 
     <string name="instruction">1. Open Wifi Setting \n2. Connect to SSID PetTracker\n  </string>
+    <string name="title_route">Choose Node Route</string>
 </resources>

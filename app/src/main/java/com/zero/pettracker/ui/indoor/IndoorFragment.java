@@ -50,9 +50,11 @@ public class IndoorFragment extends Fragment {
     private TextView statusNetwork;
     private TextView rssiNetwork;
     private TextView ssidNetwork;
+
     private Button connectToWiFi;
     private Button btnFindMyPet;
     private Button btnTurnOffAlarm;
+
     private LinearLayout distanceInformationLayout;
     private TextView distance;
     private int rssi = -100;
@@ -65,8 +67,10 @@ public class IndoorFragment extends Fragment {
 
         indoorViewModel = ViewModelProviders.of(this).get(IndoorViewModel.class);
 
+        // set view as root
         View root = inflater.inflate(R.layout.fragment_indoor, container, false);
 
+        // find the id from xml
         statusNetwork = root.findViewById(R.id.status_network);
         rssiNetwork = root.findViewById(R.id.rssi_wifi);
         ssidNetwork = root.findViewById(R.id.ssid);
@@ -80,6 +84,7 @@ public class IndoorFragment extends Fragment {
             }
         });
 
+        // Connect to WiFi on click listener
         connectToWiFi = root.findViewById(R.id.btn_connect_wifi);
         connectToWiFi.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -90,6 +95,7 @@ public class IndoorFragment extends Fragment {
             }
         });
 
+        // Find My Pet on click listener
         btnFindMyPet = root.findViewById(R.id.btn_find_pet);
         btnFindMyPet.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -98,23 +104,26 @@ public class IndoorFragment extends Fragment {
             }
         });
 
-        btnFindMyPet = root.findViewById(R.id.btn_turn_off_alarm);
-        btnFindMyPet.setOnClickListener(new View.OnClickListener() {
+        // Turn of Alarm on click listener
+        btnTurnOffAlarm = root.findViewById(R.id.btn_turn_off_alarm);
+        btnTurnOffAlarm.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                turnOffAlarm();
+                turnOffAlarm(); // turn off alarm
             }
         });
 
+        // display connection infromation
         DisplayWifiState();
 
+        // register receiver for rssi and wifi state
         getActivity().registerReceiver(this.myWifiReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         getActivity().registerReceiver(this.myRssiChangeReceiver, new IntentFilter(WifiManager.RSSI_CHANGED_ACTION));
-
 
         return root;
     }
 
+    // display WiFi information method
     private void DisplayWifiState(){
         ConnectivityManager myConnManager = (ConnectivityManager) getActivity().getSystemService(CONNECTIVITY_SERVICE);
         NetworkInfo myNetworkInfo = myConnManager.getActiveNetworkInfo();
@@ -129,7 +138,7 @@ public class IndoorFragment extends Fragment {
                 String ssid = WiFiUtils.convertSSID(myWifiInfo.getSSID());
                 current_distance = WiFiUtils.calculateDistance(frequency,rssi);
 
-                statusNetwork.setText("Connecton status : Connected");
+                statusNetwork.setText("Status : Connected");
                 rssiNetwork.setText("RSSI Level : "+ rssi);
                 ssidNetwork.setText("SSID : "+ ssid);
                 distance.setText(String.format(Locale.ENGLISH, "~%.1fm", current_distance)); // set distance
@@ -141,17 +150,18 @@ public class IndoorFragment extends Fragment {
             }
         }
         else{
-            statusNetwork.setText("Connecton status : Disconnected");
+            statusNetwork.setText("Status : Waiting for connection...");
             rssiNetwork.setText(""); // empty
             ssidNetwork.setText("");
 
-            Toast.makeText(getContext(), "Disconnected...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Waiting for connection...", Toast.LENGTH_SHORT).show();
             connectToWiFi.setVisibility(View.VISIBLE); // show button
             distanceInformationLayout.setVisibility(View.GONE); // show distance
 
         }
     }
 
+    // send request to server with rssi parameter
     private double prev_distance = 100;
     private void sendRSSItoDevice(){
         RequestQueue queue = Volley.newRequestQueue(getContext());
@@ -162,9 +172,8 @@ public class IndoorFragment extends Fragment {
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        // Display the first 500 characters of the response string.
-                        // textView.setText("Response is: "+ response.substring(0,500));
 
+                        // compare the distance for notification
                         if (current_distance < prev_distance){
                             Toast.makeText(getContext(), "My pet is getting closer!", Toast.LENGTH_SHORT).show();
                             prev_distance = current_distance;
@@ -211,6 +220,7 @@ public class IndoorFragment extends Fragment {
         queue.add(stringRequest);
     }
 
+    // Request to server -100 rssi as turn off alarm
     private void turnOffAlarm(){
         RequestQueue queue = Volley.newRequestQueue(getContext());
         String api_url = "http://192.168.4.1/set_rssi?rssi=-100";
@@ -264,6 +274,7 @@ public class IndoorFragment extends Fragment {
         queue.add(stringRequest);
     }
 
+    // on background cycle do register receiver
     @Override
     public void onResume() {
         super.onResume();
@@ -277,6 +288,7 @@ public class IndoorFragment extends Fragment {
         wifiMan.startScan();
     }
 
+    // on pause cycle do unregister receiver
     @Override
     public void onPause() {
         super.onPause();
@@ -284,6 +296,7 @@ public class IndoorFragment extends Fragment {
         getActivity().unregisterReceiver(myWifiReceiver);
     }
 
+    // on destroy cycle do unregister receiver
     @Override
     public void onDestroy() {
         try{
@@ -294,6 +307,7 @@ public class IndoorFragment extends Fragment {
         super.onDestroy();
     }
 
+    // listen to change of rssi
     private BroadcastReceiver myRssiChangeReceiver = new BroadcastReceiver(){
         @Override
         public void onReceive(Context arg0, Intent arg1) {
@@ -316,6 +330,7 @@ public class IndoorFragment extends Fragment {
         }
     };
 
+    // listen to state of wifi
     private BroadcastReceiver myWifiReceiver = new BroadcastReceiver(){
         @Override
         public void onReceive(Context arg0, Intent arg1) {

@@ -1,6 +1,5 @@
-package com.zero.pettracker.ui.indoor;
+package com.zero.pettracker.ui.outdoor;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.provider.Settings;
@@ -12,19 +11,13 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import androidx.appcompat.app.AppCompatActivity;
 
 import com.zero.pettracker.R;
 
-import java.util.Set;
-
-
-public class PopUpInstruction  {
+public class AvailableRoutePopUp  {
     private Context context;
 
-    public PopUpInstruction(Context context){
+    public AvailableRoutePopUp(Context context){
         this.context = context.getApplicationContext();
     }
 
