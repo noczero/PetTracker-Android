@@ -3,11 +3,13 @@ package com.zero.pettracker.ui.outdoor;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 public class floydWarshall {
 
     private ArrayList<Node> listNode;
-    private int[][] connectedMatrix;
+    private int[][] pathMatrix;
+    private double[][] distMatrix;
     private int size;
 
     public static int INF = 99999;
@@ -93,6 +95,14 @@ public class floydWarshall {
             for (j = 0; j < size; j++)
                 matrixA[i][j] = floyd_input[i][j];
 
+        // predecesor for reconstruction path
+        int[][] next = new int[size][size];
+        for (i = 0; i < size; i++) {
+            for (j = 0; j < size; j++)
+                if (i != j)
+                    next[i][j] = j;
+        }
+
 
         /* Add all vertices one by one to the set of intermediate
            vertices.
@@ -111,15 +121,25 @@ public class floydWarshall {
                 for (j = 0; j < size; j++) {
                     // If vertex k is on the shortest path from
                     // i to j, then update the value of matrixA[i][j]
-                    if (matrixA[i][k] + matrixA[k][j] < matrixA[i][j])
+                    if (matrixA[i][k] + matrixA[k][j] < matrixA[i][j]){
                         matrixA[i][j] = matrixA[i][k] + matrixA[k][j];
+                        // put path
+                        next[i][j] = next[i][k];
+                    }
                 }
             }
         }
 
+        // set it to class for access
+        this.pathMatrix = next;
+        this.distMatrix = matrixA;
+
         return matrixA;
     }
 
+    public int[][] getPathMatrix() {
+        return pathMatrix;
+    }
 
     public int[][] getConnectedMatrix() {
         int[][] connectedMatrix = new int[size][size];
@@ -172,4 +192,36 @@ public class floydWarshall {
 
         return flyodInput;
     }
+
+    public StringBuilder reconstructionPath(){
+        StringBuilder strBuild = new StringBuilder();
+        strBuild.append("The fastest path : \n");
+        //strBuild.append("pair \tdist \tpath");
+        //for(int i = 0; i < pathMatrix.length; i++){
+            //for(int j = 0; j < pathMatrix.length; j++){
+                int i = 0;
+                int j = listNode.size() - 1; // get the last cols
+                if( i != j){
+                    // not itself
+                    int u = i;
+                    int v = j;
+                    String path = listNode.get(i).getName() + " to " + listNode.get(j).getName() + " has " + String.format(Locale.ENGLISH, "%.1fm", distMatrix[i][j]) + " with path " + listNode.get(i).getName();
+
+                    // reconstruction path
+                    do {
+                        u = pathMatrix[u][v];
+                        path += "->" + listNode.get(u).getName();
+                    } while (u != v );
+
+                    strBuild.append(path + "\n"); // append path
+                }
+
+            //}
+            strBuild.append("\n");
+        //}
+
+        return strBuild;
+    }
+
+
 }

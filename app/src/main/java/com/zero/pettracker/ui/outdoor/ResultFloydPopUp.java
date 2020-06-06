@@ -100,6 +100,11 @@ public class ResultFloydPopUp  {
         // Step 6 : get result floyd algorithm
         double[][] floyd_ouput = fw_algorithm.getFloyWarshalldMatrix(floyd_input);
 
+        // Step 7 : Reconstruction Path
+        StringBuilder pathReconstruction = fw_algorithm.reconstructionPath();
+        TextView pathResult = v.findViewById(R.id.result_path);
+        pathResult.setText(pathReconstruction);
+
         return floyd_ouput;
     }
 
