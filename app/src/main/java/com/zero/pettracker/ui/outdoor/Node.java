@@ -62,6 +62,7 @@ public class Node implements Parcelable {
     }
 
 
+
     public void setName(String name) {
         this.name = name;
     }

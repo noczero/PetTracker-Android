@@ -12,6 +12,23 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:padding="20dp"
+        android:layout_marginBottom="100dp"
         />
+
+    <Button
+        android:id="@+id/btn_calculate"
+        style="@style/Widget.MaterialComponents.Button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10sp"
+        android:padding="20sp"
+        android:text="Calculate Floyd"
+        android:textSize="15sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/node_recycle_view" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -76,11 +76,12 @@ public class NodeAdapter extends RecyclerView.Adapter<NodeAdapter.NodeViewHolder
                     adapter untuk memanggil index posisi.
                      */
 
-                    nodeAdapterCallback.onRowNodeClicked(getAdapterPosition());
-                    // start instruction
+                    // start route pop up
                     AvailableRoutePopUp availableRoutePopUp = new AvailableRoutePopUp(mContext,nodeList);
                     availableRoutePopUp.showPopupWindow(v,getAdapterPosition());
 
+                    // callback
+                    nodeAdapterCallback.onRowNodeClicked(getAdapterPosition());
                     nodeAdapterCallback.getNodeList(availableRoutePopUp.getNodeList()); // getNodeList from pop up window
                 }
             });

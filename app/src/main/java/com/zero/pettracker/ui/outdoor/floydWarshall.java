@@ -1,27 +1,34 @@
 package com.zero.pettracker.ui.outdoor;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 
 public class floydWarshall {
 
     private ArrayList<Node> listNode;
+    private int[][] connectedMatrix;
     private int size;
+
+    public static int INF = 99999;
 
     public floydWarshall(ArrayList<Node> node) {
         this.listNode = node;
         this.size = node.size();
     }
 
-    public void orderNode(){
-        // move end node to last node, we know end node in the second element of node
-
-            Node endNode = OutdoorFragment.findSameNode("End",listNode);
+    public void orderNode() {
+        // find end node
+        Node endNode = OutdoorFragment.findSameNode("End", listNode);
+        if(endNode != null){
+            // note order correctly
             listNode.remove(endNode); // remove
             listNode.add(endNode); // add again to last
+        }
     }
 
 
-    public ArrayList<Node> getListNode(){
+    public ArrayList<Node> getListNode() {
         return this.listNode;
     }
 
@@ -29,13 +36,14 @@ public class floydWarshall {
      * Calculate distance between two points in latitude and longitude taking
      * into account height difference. If you are not interested in height
      * difference pass 0.0. Uses Haversine method as its base.
-     *
+     * <p>
      * lat1, lon1 Start point lat2, lon2 End point el1 Start altitude in meters
      * el2 End altitude in meters
+     *
      * @returns Distance in Meters
      */
     public static double getHeaversineDistance(double lat1, double lat2, double lon1,
-                                  double lon2, double el1, double el2) {
+                                               double lon2, double el1, double el2) {
 
         final int R = 6371; // Radius of the earth
 
@@ -54,12 +62,12 @@ public class floydWarshall {
         return Math.sqrt(distance);
     }
 
-    public double[][] getDistanceMatrix(){
+    public double[][] getDistanceMatrix() {
 
         double[][] distanceMatrix = new double[size][size]; // create 2 dimensional matrix based size
-        int i, j, k;
-        for (i = 0; i < size; i++){
-            for (j = 0; j < size; j++){
+        int i, j;
+        for (i = 0; i < size; i++) {
+            for (j = 0; j < size; j++) {
                 // poistion move along rows
                 double latitude1 = listNode.get(i).getLatLng().latitude;
                 double longitude1 = listNode.get(i).getLatLng().longitude;
@@ -69,27 +77,21 @@ public class floydWarshall {
                 double longitude2 = listNode.get(j).getLatLng().longitude;
 
                 // get distance betweern two position
-                distanceMatrix[i][j] = getHeaversineDistance(latitude1,latitude2,longitude1,longitude2,0,0);
-                // set infinity to lower triangle of matrix
-                for(k = j; k < i; k++){
-                    distanceMatrix[i][k] = 9999; // as infinty
-                }
-
-                // set infinity to upper triangle
+                distanceMatrix[i][j] = getHeaversineDistance(latitude1, latitude2, longitude1, longitude2, 0, 0);
             }
         }
 
         return distanceMatrix;
     }
 
-    public double[][] getFloyWarshalldMatrix(double[][] distanceMatrix){
+    public double[][] getFloyWarshalldMatrix(double[][] floyd_input) {
         double[][] matrixA = new double[size][size];
-        int i, j , k;
+        int i, j, k;
 
         // duplicateMatrix
         for (i = 0; i < size; i++)
             for (j = 0; j < size; j++)
-                matrixA[i][j] = distanceMatrix[i][j];
+                matrixA[i][j] = floyd_input[i][j];
 
 
         /* Add all vertices one by one to the set of intermediate
@@ -101,15 +103,12 @@ public class floydWarshall {
           ----> After the end of an iteration, vertex no. k is added
                 to the set of intermediate vertices and the set
                 becomes {0, 1, 2, .. k} */
-        for (k = 0; k < size; k++)
-        {
+        for (k = 0; k < size; k++) {
             // Pick all vertices as source one by one
-            for (i = 0; i < size; i++)
-            {
+            for (i = 0; i < size; i++) {
                 // Pick all vertices as destination for the
                 // above picked source
-                for (j = 0; j < size; j++)
-                {
+                for (j = 0; j < size; j++) {
                     // If vertex k is on the shortest path from
                     // i to j, then update the value of matrixA[i][j]
                     if (matrixA[i][k] + matrixA[k][j] < matrixA[i][j])
@@ -122,4 +121,55 @@ public class floydWarshall {
     }
 
 
+    public int[][] getConnectedMatrix() {
+        int[][] connectedMatrix = new int[size][size];
+
+        // iterate over rows
+        for (int i = 0; i < size; i++) {
+            // iterate over cols
+            for (int j = 0; j < size; j++) {
+
+                // create diagonal 1, as on its node its connected
+                if (i == j) {
+                    connectedMatrix[i][j] = 1;
+                } else {
+                    // iteratre over list connected node
+                    if (listNode.get(i).getConnectedList() != null) {
+                        if (listNode.get(i).getConnectedList().size() > 0) {
+                            ArrayList<String> listConnected = listNode.get(i).getConnectedList();
+
+                            // iterate
+                            for (String name : listConnected) {
+                                // compare to rows
+                                if (name.equals(listNode.get(j).getName())) {
+                                    connectedMatrix[i][j] = 1;
+                                    break; // exit loop list connected node
+                                } else {
+                                    connectedMatrix[i][j] = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return connectedMatrix;
+    }
+
+    public double[][] getFloydInput(double[][] distanceMatrix, int[][] connectedMatrix){
+        double[][] flyodInput = new double[size][size];
+
+        for (int i = 0; i < size; i++)
+            for(int j = 0; j < size; j++){
+                // check if index has 1 value in connectedMatrix
+                if(connectedMatrix[i][j] > 0){
+                    // set floydInput from distanceMatrix value
+                    flyodInput[i][j] = distanceMatrix[i][j];
+                } else{
+                    flyodInput[i][j] = INF; // Infinity Value
+                }
+            }
+
+        return flyodInput;
+    }
 }
