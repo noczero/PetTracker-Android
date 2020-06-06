@@ -18,10 +18,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ProgressBar;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -80,7 +82,8 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
     String latitude, longitude, last_time_updated;
 
     private Button btnRoute;
-
+    private ProgressBar progressBar;
+    private ConstraintLayout outdoorLayout;
 
     // onCreateView
     @Nullable
@@ -90,6 +93,10 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
         outdoorViewModel = ViewModelProviders.of(this).get(OutdoorViewModel.class);
 
         View root = inflater.inflate(R.layout.fragment_outdoor, container, false);
+
+        // progressbar
+        progressBar = root.findViewById(R.id.loader);
+        outdoorLayout = root.findViewById(R.id.main_outdoor_layout);
 
         getFirebaseData();
 
@@ -118,7 +125,7 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
                             mCurrLocationMarker = mGoogleMap.addMarker(markerOptions);
 
                             // add position to node list
-                            listNode.add(new Node(latLng,"Start")); // add it to node
+                            listNode.add(new Node(latLng, "Start")); // add it to node
 
                             //move map camera
                             mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
@@ -146,13 +153,14 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
             }
         });
 
+
         return root;
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
-        mGoogleMap=googleMap;
+        mGoogleMap = googleMap;
 
         // check permission
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -175,7 +183,7 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
                         markerOptions.title(markerTitle);
 
                         // add position to node list
-                        listNode.add(new Node(latLng,markerTitle)); // add it to node
+                        listNode.add(new Node(latLng, markerTitle)); // add it to node
 
                         // add marker to maps
                         mGoogleMap.addMarker(markerOptions);
@@ -190,18 +198,30 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
                 //Request Location Permission
                 checkLocationPermission();
             }
-        }
-        else {
+        } else {
             mGoogleMap.setMyLocationEnabled(true);
         }
     }
 
-    void getFirebaseData(){
+    void showLoadingLayout() {
+        outdoorLayout.setVisibility(View.GONE);
+        progressBar.setVisibility(View.VISIBLE);
+    }
+
+    void hideLoadingLayout() {
+        outdoorLayout.setVisibility(View.VISIBLE);
+        progressBar.setVisibility(View.GONE);
+    }
+
+    void getFirebaseData() {
+
+        showLoadingLayout();
+
         firebaseDB.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
-                if(dataSnapshot.exists()){
+                if (dataSnapshot.exists()) {
                     latitude = String.valueOf(dataSnapshot.child("Latitude").getValue());
                     longitude = String.valueOf(dataSnapshot.child("Longitude").getValue());
                     last_time_updated = String.valueOf(dataSnapshot.child("LastUpdate").getValue());
@@ -212,7 +232,7 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
                     LatLng petLocation = new LatLng(parseDouble(latitude), parseDouble(longitude));
 
                     // check marker
-                    if (mPetLocationMarker != null && mCircle != null){
+                    if (mPetLocationMarker != null && mCircle != null) {
                         mPetLocationMarker.remove(); // remove previous marker
                         mCircle.remove();
                     }
@@ -230,9 +250,9 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
                     // check node to update itself
                     petNode = findSameNode("End", listNode); // find node on the list with End name.
 
-                    if(petNode == null){
+                    if (petNode == null) {
                         // not found on list
-                        listNode.add(new Node(petLocation,"End")); // add it to node
+                        listNode.add(new Node(petLocation, "End")); // add it to node
                     } else {
                         // found, set new latitude longitude
                         petNode.setLatLng(petLocation);
@@ -246,6 +266,8 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
                     //move map camera
                     mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(petLocation));
                     mGoogleMap.animateCamera(CameraUpdateFactory.zoomTo(18));
+
+                    hideLoadingLayout();
                 }
             }
 
@@ -281,9 +303,9 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
     }
 
     // searh equals name and retrun the node
-    public static Node findSameNode(String name, ArrayList<Node> nodes){
+    public static Node findSameNode(String name, ArrayList<Node> nodes) {
         for (Node node : nodes) {
-            if(node.getName().equals(name)){
+            if (node.getName().equals(name)) {
                 return node;
             }
         }
@@ -306,6 +328,7 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
     }
 
     public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
+
     private void checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -326,7 +349,7 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
                                 //Prompt the user once explanation has been shown
                                 ActivityCompat.requestPermissions(getActivity(),
                                         new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                                        MY_PERMISSIONS_REQUEST_LOCATION );
+                                        MY_PERMISSIONS_REQUEST_LOCATION);
                             }
                         })
                         .create()
@@ -337,7 +360,7 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
                 // No explanation needed, we can request the permission.
                 ActivityCompat.requestPermissions(getActivity(),
                         new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        MY_PERMISSIONS_REQUEST_LOCATION );
+                        MY_PERMISSIONS_REQUEST_LOCATION);
             }
         }
     }
@@ -350,7 +373,7 @@ public class OutdoorFragment extends Fragment implements OnMapReadyCallback, Loc
         Drawable vectorDrawable = ContextCompat.getDrawable(context, vectorDrawableResourceId);
         int left = (background.getIntrinsicWidth() - vectorDrawable.getIntrinsicWidth()) / 2;
         int top = (background.getIntrinsicHeight() - vectorDrawable.getIntrinsicHeight()) / 3;
-        vectorDrawable.setBounds(left,top , vectorDrawable.getIntrinsicWidth() + left, vectorDrawable.getIntrinsicHeight() + top);
+        vectorDrawable.setBounds(left, top, vectorDrawable.getIntrinsicWidth() + left, vectorDrawable.getIntrinsicHeight() + top);
         Bitmap bitmap = Bitmap.createBitmap(background.getIntrinsicWidth(), background.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         background.draw(canvas);

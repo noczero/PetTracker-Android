@@ -23,8 +23,6 @@ public class SelectRouteActivity extends AppCompatActivity implements NodeAdapte
     RecyclerView recyclerView;
 
     private ArrayList<Node> listNode;
-    
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,11 +31,6 @@ public class SelectRouteActivity extends AppCompatActivity implements NodeAdapte
         ButterKnife.bind(this);
 
         listNode = getIntent().getParcelableArrayListExtra("listNode");
-
-        // Check Node
-                   for(Node node : listNode){
-                        Log.d("node", "Name : " + node.getName() + " - LatLon : " + node.getLatLng());
-                    }
 
         setNode(listNode); // call recycle view
 
@@ -49,7 +42,7 @@ public class SelectRouteActivity extends AppCompatActivity implements NodeAdapte
 
         recyclerView.setAdapter(nodeAdapter);
         GridLayoutManager layoutManager = new GridLayoutManager(this, 2,
-                GridLayoutManager.VERTICAL, false); // set jadi 1 kolom
+                GridLayoutManager.VERTICAL, false); // set jadi 2 kolom
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setNestedScrollingEnabled(false);
         recyclerView.setClipToPadding(false);
@@ -59,7 +52,22 @@ public class SelectRouteActivity extends AppCompatActivity implements NodeAdapte
 
     @Override
     public void onRowNodeClicked(int position) {
-        String nama = listNode.get(position).getName();
-        Toast.makeText(this, "Node " + nama, Toast.LENGTH_SHORT).show();
+
+        //String nama = listNode.get(position).getName();
+        //Toast.makeText(this, "Node " + nama, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void getNodeList(ArrayList<Node> nodeList) {
+        // updateList to the newest
+        this.listNode = nodeList;
+
+        for (Node node : nodeList){
+            Log.d("ConnectedList" , node.getName());
+            if(node.getConnectedList()!= null)
+            for (String value : node.getConnectedList()){
+                Log.d("ConnectedList", "Connected Node: " + value);
+            }
+        }
     }
 }

@@ -11,15 +11,18 @@ import java.util.ArrayList;
 public class Node implements Parcelable {
     private LatLng latLng;
     private String name;
+    private ArrayList<String> connectedList;
 
     public Node(LatLng latLng, String name) {
         this.latLng = latLng;
         this.name = name;
+        this.connectedList = null;
     }
 
     protected Node(Parcel in) {
         latLng = (LatLng) in.readValue(LatLng.class.getClassLoader());
         name = in.readString();
+        connectedList = in.readArrayList(String.class.getClassLoader());
     }
 
     public static final Creator<Node> CREATOR = new Creator<Node>() {
@@ -46,10 +49,22 @@ public class Node implements Parcelable {
         return name;
     }
 
+    public ArrayList<String> getConnectedList() {
+        return connectedList;
+    }
+
+    public void setConnectedList(ArrayList<String> connectedList) {
+        this.connectedList = connectedList;
+    }
+
+    public void addConnectedList(String nodeID){
+        this.connectedList.add(nodeID);
+    }
+
+
     public void setName(String name) {
         this.name = name;
     }
-
 
     @Override
     public int describeContents() {
@@ -60,5 +75,6 @@ public class Node implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeValue(this.latLng);
         dest.writeString(this.name);
+        dest.writeList(this.connectedList);
     }
 }

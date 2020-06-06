@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.zero.pettracker.R;
+import com.zero.pettracker.ui.indoor.PopUpInstruction;
 
 import org.w3c.dom.NodeList;
 
@@ -74,12 +75,20 @@ public class NodeAdapter extends RecyclerView.Adapter<NodeAdapter.NodeViewHolder
                     Memanggil interface dan juga methodnya. getAdapterPosition ini adalah method bawaan
                     adapter untuk memanggil index posisi.
                      */
+
                     nodeAdapterCallback.onRowNodeClicked(getAdapterPosition());
+                    // start instruction
+                    AvailableRoutePopUp availableRoutePopUp = new AvailableRoutePopUp(mContext,nodeList);
+                    availableRoutePopUp.showPopupWindow(v,getAdapterPosition());
+
+                    nodeAdapterCallback.getNodeList(availableRoutePopUp.getNodeList()); // getNodeList from pop up window
                 }
             });
 
         }
     }
+
+
 
     /*
    interface sebagai listener onclick adapter ke parent activity
@@ -90,5 +99,6 @@ public class NodeAdapter extends RecyclerView.Adapter<NodeAdapter.NodeViewHolder
         disini adalah untuk mendapatkan pada posisi mana user mengklik listnya.
          */
         void onRowNodeClicked(int position);
+        void getNodeList(ArrayList<Node> nodeList);
     }
 }
